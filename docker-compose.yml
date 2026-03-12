@@ -1,0 +1,66 @@
+networks:
+  homelab:
+    external: true
+
+services:
+
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cr-monitoring-pipeline
+    command: python src/pipeline/monitoring_pipeline.py
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - S3_BUCKET=credit-risk-monitoring
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    networks:
+      - homelab
+    profiles:
+      - pipeline
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cr-monitoring-scheduler
+    command: python src/pipeline/run_scheduler.py
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - S3_BUCKET=credit-risk-monitoring
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    networks:
+      - homelab
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cr-monitoring-dashboard
+    command: streamlit run dashboard/app.py --server.port=8502 --server.address=0.0.0.0
+    ports:
+      - "8502:8502"
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - S3_BUCKET=credit-risk-monitoring
+    volumes:
+      - ./data:/app/data
+    networks:
+      - homelab
+    restart: unless-stopped
+    depends_on:
+      - scheduler
