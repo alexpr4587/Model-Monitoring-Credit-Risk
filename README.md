@@ -153,27 +153,6 @@ The result for each month is serialised as `latest_alert.json` and fed to the da
 
 ## 🏗️ **Architecture**
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        Home Server                           │
-│                                                              │
-│  ┌─────────────────┐     ┌────────────────────────────────┐  │
-│  │    LocalStack   │     │      Docker Compose Stack      │  │
-│  │  S3 :4566       │◄────│                                │  │
-│  │                 │     │  cr-monitoring-scheduler       │  │
-│  │ /models/        │     │    runs pipeline on day 1      │  │
-│  │ /baseline/      │     │    of each month               │  │
-│  │ /production/    │     │                                │  │
-│  │ /monitoring_    │     │  cr-monitoring-dashboard       │  │
-│  │   results/      │────►│    Streamlit :8502             │  │
-│  └─────────────────┘     └────────────────────────────────┘  │
-│                                                              │
-└───────────────────────────────┬──────────────────────────────┘
-                                │ Tailscale
-                                ▼
-                         Laptop Browser
-```
-
 The key architectural principle — inherited from the upstream project — is **separation of code and artifacts**. The Docker images contain only code. Models (`.pkl` files) and data live exclusively in S3 (LocalStack in dev, AWS S3 in production). When the scheduler runs, it pulls the current artifacts from S3 dynamically, meaning model updates never require a redeployment.
 
 ### Services
